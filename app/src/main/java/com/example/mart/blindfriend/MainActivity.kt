@@ -16,12 +16,14 @@ import android.hardware.camera2.TotalCaptureResult
 import android.hardware.camera2.params.StreamConfigurationMap
 import android.media.Image
 import android.media.ImageReader
+import android.net.Uri
 import android.os.Environment
 import android.os.Handler
 import android.os.HandlerThread
 import android.support.v4.app.ActivityCompat
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.util.Size
 import android.util.SparseIntArray
 import android.view.Surface
@@ -29,6 +31,9 @@ import android.view.TextureView
 import android.view.View
 import android.widget.Button
 import android.widget.Toast
+import com.google.firebase.ml.vision.FirebaseVision
+import com.google.firebase.ml.vision.cloud.FirebaseVisionCloudDetectorOptions
+import com.google.firebase.ml.vision.common.FirebaseVisionImage
 import kotlinx.android.synthetic.main.activity_main.*
 
 import java.io.File
@@ -37,11 +42,23 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.io.OutputStream
 import java.nio.ByteBuffer
-import java.util.ArrayList
-import java.util.Arrays
-import java.util.UUID
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity() {
+
+
+
+    private var currentPath: String? = null
+
+    private var options = FirebaseVisionCloudDetectorOptions.Builder()
+            .setModelType(FirebaseVisionCloudDetectorOptions.LATEST_MODEL)
+            .setMaxResults(15)
+            .build()
+
+    lateinit var image: FirebaseVisionImage
+
 
 
     private var cameraId: String? = null
@@ -134,7 +151,18 @@ class MainActivity : AppCompatActivity() {
             val rotation = windowManager.defaultDisplay.rotation
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(rotation))
 
-            file = File(Environment.getExternalStorageDirectory().toString() + "/" + UUID.randomUUID().toString() + ".jpg")
+
+            val timeStamp = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(Date())
+            //Set file name not suffix (only name)
+            val imageName = "Photo_$timeStamp"
+
+//            file = File(Environment.getExternalStorageDirectory().toString() + "/Android/data/com.example.mart.blindfriend/Picture/" + UUID.randomUUID().toString() + ".jpg")
+            file = File(Environment.getExternalStorageDirectory().toString() + "/BlindFriend/" + imageName + ".jpg")
+
+            currentPath = file!!.absolutePath
+
+            println("/////////// Current Path /////////////////    :   " + currentPath)
+
             val readerListener = object : ImageReader.OnImageAvailableListener {
                 override fun onImageAvailable(imageReader: ImageReader) {
                     var image: Image? = null
@@ -170,7 +198,48 @@ class MainActivity : AppCompatActivity() {
             val captureListener = object : CameraCaptureSession.CaptureCallback() {
                 override fun onCaptureCompleted(session: CameraCaptureSession, request: CaptureRequest, result: TotalCaptureResult) {
                     super.onCaptureCompleted(session, request, result)
-                    Toast.makeText(this@MainActivity, "Saved " + file!!, Toast.LENGTH_SHORT).show()
+//                    Toast.makeText(this@MainActivity, "Saved " + file!!, Toast.LENGTH_SHORT).show()
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                    try {
+                        //create file from current path. You will get current path from
+                        //createImageSaveStorage()
+                        val file = File(currentPath)
+                        Log.i("File","$file")
+                        val uri = Uri.fromFile(file)
+                        Log.i("Uri","$uri")
+
+
+                        image = FirebaseVisionImage.fromFilePath(this@MainActivity, uri)
+
+                        val detector = FirebaseVision.getInstance().getVisionCloudLabelDetector (options)
+                        contentLabel.text = null
+                        val result = detector.detectInImage(image)
+                                .addOnSuccessListener { labels ->
+                                    if (labels != null) {
+                                        for (label in labels) {
+//                                            if(label.confidence>=0.75){
+//                                                contentLabel.append(label.label)
+////                                                environmentRecognition.append(label.label+" :  ")
+////                                                environmentRecognition.append(label.confidence.toString()+"\n")
+//                                                break
+//                                            }
+                                            println("Show Label from image "+label.label)
+                                            contentLabel.append(label.label)
+                                            break
+                                        }
+                                    }
+                                }
+                                .addOnFailureListener {
+                                    Toast.makeText(this@MainActivity,"Unsuccessful", Toast.LENGTH_SHORT).show()
+                                }
+                    } catch (e: IOException){
+                        e.printStackTrace()
+                    }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
                     createCameraPreview()
                 }
             }
@@ -308,6 +377,6 @@ class MainActivity : AppCompatActivity() {
             ORIENTATIONS.append(Surface.ROTATION_270, 180)
         }
 
-        private val REQUEST_CAMERA_PERMISSION = 200
+        private val REQUEST_CAMERA_PERMISSION = 0
     }
 }
