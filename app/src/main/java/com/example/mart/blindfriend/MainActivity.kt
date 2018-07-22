@@ -34,6 +34,8 @@ import android.widget.Toast
 import com.google.firebase.ml.vision.FirebaseVision
 import com.google.firebase.ml.vision.cloud.FirebaseVisionCloudDetectorOptions
 import com.google.firebase.ml.vision.common.FirebaseVisionImage
+import com.google.firebase.ml.vision.common.FirebaseVisionImage.*
+import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata
 import kotlinx.android.synthetic.main.activity_main.*
 
 import java.io.File
@@ -57,7 +59,7 @@ class MainActivity : AppCompatActivity() {
             .setMaxResults(15)
             .build()
 
-    lateinit var image: FirebaseVisionImage
+    lateinit var firebaseImage: FirebaseVisionImage
 
 
 
@@ -117,6 +119,7 @@ class MainActivity : AppCompatActivity() {
         //From Java 1.4 , you can use keyword 'assert' to check expression true or false
         assert(textureView != null)
         textureView!!.surfaceTextureListener = textureListener
+
         btnCapture!!.setOnClickListener { takePicture() }
     }
 
@@ -157,11 +160,19 @@ class MainActivity : AppCompatActivity() {
             val imageName = "Photo_$timeStamp"
 
 //            file = File(Environment.getExternalStorageDirectory().toString() + "/Android/data/com.example.mart.blindfriend/Picture/" + UUID.randomUUID().toString() + ".jpg")
-            file = File(Environment.getExternalStorageDirectory().toString() + "/BlindFriend/" + imageName + ".jpg")
+            file = File(Environment.getExternalStorageDirectory().toString() + "/" + imageName + ".jpg")
 
             currentPath = file!!.absolutePath
 
             println("/////////// Current Path /////////////////    :   " + currentPath)
+
+            val metadata: FirebaseVisionImageMetadata = FirebaseVisionImageMetadata.Builder()
+                    .setWidth(640)
+                    .setHeight(480)
+                    .setFormat(FirebaseVisionImageMetadata.IMAGE_FORMAT_NV21)
+                    .setRotation(rotation)
+                    .build()
+
 
             val readerListener = object : ImageReader.OnImageAvailableListener {
                 override fun onImageAvailable(imageReader: ImageReader) {
@@ -171,7 +182,16 @@ class MainActivity : AppCompatActivity() {
                         val buffer = image!!.planes[0].buffer
                         val bytes = ByteArray(buffer.capacity())
                         buffer.get(bytes)
+                        /**
+                         *
+                         * try to throw it to firebase ML kit bytebuffer
+                         *
+                         */
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                         save(bytes)
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
                     } catch (e: FileNotFoundException) {
                         e.printStackTrace()
@@ -201,32 +221,24 @@ class MainActivity : AppCompatActivity() {
 //                    Toast.makeText(this@MainActivity, "Saved " + file!!, Toast.LENGTH_SHORT).show()
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                    val file = File(currentPath)
+                    Log.i("File","$file")
+                    val uri = Uri.fromFile(file)
+                    Log.i("Uri","$uri")
                     try {
-                        //create file from current path. You will get current path from
-                        //createImageSaveStorage()
-                        val file = File(currentPath)
-                        Log.i("File","$file")
-                        val uri = Uri.fromFile(file)
-                        Log.i("Uri","$uri")
-
-
-                        image = FirebaseVisionImage.fromFilePath(this@MainActivity, uri)
+                        firebaseImage = FirebaseVisionImage.fromFilePath(this@MainActivity,uri)
 
                         val detector = FirebaseVision.getInstance().getVisionCloudLabelDetector (options)
-                        contentLabel.text = null
-                        val result = detector.detectInImage(image)
+
+                        val result = detector.detectInImage(firebaseImage)
                                 .addOnSuccessListener { labels ->
                                     if (labels != null) {
                                         for (label in labels) {
-//                                            if(label.confidence>=0.75){
-//                                                contentLabel.append(label.label)
-////                                                environmentRecognition.append(label.label+" :  ")
-////                                                environmentRecognition.append(label.confidence.toString()+"\n")
-//                                                break
-//                                            }
-                                            println("Show Label from image "+label.label)
-                                            contentLabel.append(label.label)
-                                            break
+//                                                if(label.confidence>=0.75){
+//                                                    contentLabel.append(label.label+" :  ")
+//                                                    contentLabel.append(label.confidence.toString()+"\n")
+                                            println(label.label+" : "+label.confidence.toString())
+//                                                }
                                         }
                                     }
                                 }
@@ -236,7 +248,6 @@ class MainActivity : AppCompatActivity() {
                     } catch (e: IOException){
                         e.printStackTrace()
                     }
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
