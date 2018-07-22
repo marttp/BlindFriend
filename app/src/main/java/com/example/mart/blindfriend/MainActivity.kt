@@ -3,6 +3,8 @@ package com.example.mart.blindfriend
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraAccessException
@@ -155,24 +157,15 @@ class MainActivity : AppCompatActivity() {
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(rotation))
 
 
-            val timeStamp = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(Date())
-            //Set file name not suffix (only name)
-            val imageName = "Photo_$timeStamp"
+//            val timeStamp = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(Date())
+//            //Set file name not suffix (only name)
+//            val imageName = "Photo_$timeStamp"
 
 //            file = File(Environment.getExternalStorageDirectory().toString() + "/Android/data/com.example.mart.blindfriend/Picture/" + UUID.randomUUID().toString() + ".jpg")
-            file = File(Environment.getExternalStorageDirectory().toString() + "/" + imageName + ".jpg")
-
-            currentPath = file!!.absolutePath
-
-            println("/////////// Current Path /////////////////    :   " + currentPath)
-
-            val metadata: FirebaseVisionImageMetadata = FirebaseVisionImageMetadata.Builder()
-                    .setWidth(640)
-                    .setHeight(480)
-                    .setFormat(FirebaseVisionImageMetadata.IMAGE_FORMAT_NV21)
-                    .setRotation(rotation)
-                    .build()
-
+//            file = File(Environment.getExternalStorageDirectory().toString() + "/" + imageName + ".jpg")
+//            currentPath = file!!.absolutePath
+//
+//            println("/////////// Current Path /////////////////    :   " + currentPath)
 
             val readerListener = object : ImageReader.OnImageAvailableListener {
                 override fun onImageAvailable(imageReader: ImageReader) {
@@ -181,15 +174,49 @@ class MainActivity : AppCompatActivity() {
                         image = reader.acquireLatestImage()
                         val buffer = image!!.planes[0].buffer
                         val bytes = ByteArray(buffer.capacity())
-                        buffer.get(bytes)
+//                        buffer.get(bytes)
                         /**
                          *
                          * try to throw it to firebase ML kit bytebuffer
                          *
                          */
+                        val imageBytes = ByteArray(buffer.remaining())
+                        buffer.get(imageBytes)
+
+                        val bmp = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+
+                        try {
+
+                            firebaseImage = FirebaseVisionImage.fromBitmap(bmp)
+
+                            val detector = FirebaseVision.getInstance().getVisionCloudLabelDetector (options)
+
+                            val result = detector.detectInImage(firebaseImage)
+                                    .addOnSuccessListener { labels ->
+                                        var speectText = ""
+                                        if (labels != null) {
+                                            for (label in labels) {
+//                                                if(label.confidence>=0.75){
+//                                                    contentLabel.append(label.label+" :  ")
+//                                                    contentLabel.append(label.confidence.toString()+"\n")
+                                                println(label.label+" : "+label.confidence.toString())
+//                                                }
+                                                speectText += label.label + " and "
+                                            }
+                                        }
+                                        speectText+="จบการทำงาน"
+                                        TextSpeech.getInstance(applicationContext).speak(speectText)
+                                        println(speectText)
+                                    }
+                                    .addOnFailureListener {
+                                        Toast.makeText(this@MainActivity,"Unsuccessful", Toast.LENGTH_SHORT).show()
+                                    }
+                        } catch (e: IOException){
+                            e.printStackTrace()
+                        }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                        save(bytes)
+//                        save(bytes)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -221,33 +248,33 @@ class MainActivity : AppCompatActivity() {
 //                    Toast.makeText(this@MainActivity, "Saved " + file!!, Toast.LENGTH_SHORT).show()
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                    val file = File(currentPath)
-                    Log.i("File","$file")
-                    val uri = Uri.fromFile(file)
-                    Log.i("Uri","$uri")
-                    try {
-                        firebaseImage = FirebaseVisionImage.fromFilePath(this@MainActivity,uri)
-
-                        val detector = FirebaseVision.getInstance().getVisionCloudLabelDetector (options)
-
-                        val result = detector.detectInImage(firebaseImage)
-                                .addOnSuccessListener { labels ->
-                                    if (labels != null) {
-                                        for (label in labels) {
-//                                                if(label.confidence>=0.75){
-//                                                    contentLabel.append(label.label+" :  ")
-//                                                    contentLabel.append(label.confidence.toString()+"\n")
-                                            println(label.label+" : "+label.confidence.toString())
-//                                                }
-                                        }
-                                    }
-                                }
-                                .addOnFailureListener {
-                                    Toast.makeText(this@MainActivity,"Unsuccessful", Toast.LENGTH_SHORT).show()
-                                }
-                    } catch (e: IOException){
-                        e.printStackTrace()
-                    }
+//                    val file = File(currentPath)
+//                    Log.i("File","$file")
+//                    val uri = Uri.fromFile(file)
+//                    Log.i("Uri","$uri")
+//                    try {
+//                        firebaseImage = FirebaseVisionImage.fromFilePath(this@MainActivity,uri)
+//
+//                        val detector = FirebaseVision.getInstance().getVisionCloudLabelDetector (options)
+//
+//                        val result = detector.detectInImage(firebaseImage)
+//                                .addOnSuccessListener { labels ->
+//                                    if (labels != null) {
+//                                        for (label in labels) {
+////                                                if(label.confidence>=0.75){
+////                                                    contentLabel.append(label.label+" :  ")
+////                                                    contentLabel.append(label.confidence.toString()+"\n")
+//                                            println(label.label+" : "+label.confidence.toString())
+////                                                }
+//                                        }
+//                                    }
+//                                }
+//                                .addOnFailureListener {
+//                                    Toast.makeText(this@MainActivity,"Unsuccessful", Toast.LENGTH_SHORT).show()
+//                                }
+//                    } catch (e: IOException){
+//                        e.printStackTrace()
+//                    }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
