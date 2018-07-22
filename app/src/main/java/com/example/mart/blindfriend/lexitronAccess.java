@@ -4,6 +4,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.database.sqlite.SQLiteQueryBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,15 +57,19 @@ public class lexitronAccess {
      *
      * @return a List of quotes
      */
-    public List<String> getQuotes() {
-        List<String> list = new ArrayList<>();
-        Cursor cursor = database.rawQuery("SELECT * FROM quotes", null);
+    public String getQuotes(String input) {
+//        List<String> list = new ArrayList<>();
+        String output;
+        Cursor cursor = database.rawQuery("SELECT tentry FROM eng2th WHERE esearch = '"+input+"'", null);
         cursor.moveToFirst();
-        while (!cursor.isAfterLast()) {
-            list.add(cursor.getString(0));
-            cursor.moveToNext();
-        }
+//        while (!cursor.isAfterLast()) {
+//            list.add(cursor.getString(0));
+//            cursor.moveToNext();
+//        }
+//        list.add(cursor.getString(0));
+//        cursor.close();
+        output = cursor.getString(0);
         cursor.close();
-        return list;
+        return output;
     }
 }

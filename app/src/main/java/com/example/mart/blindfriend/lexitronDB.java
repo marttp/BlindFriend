@@ -5,7 +5,7 @@ import android.content.Context;
 import com.readystatesoftware.sqliteasset.SQLiteAssetHelper;
 
 public class lexitronDB  extends SQLiteAssetHelper{
-    private static final String DATABASE_NAME = "lexitron.db";
+    private static final String DATABASE_NAME = "lexitron.sqlite";
     private static final int DATABASE_VERSION = 1;
 
     public lexitronDB(Context context) {

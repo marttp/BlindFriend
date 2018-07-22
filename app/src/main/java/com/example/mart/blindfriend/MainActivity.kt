@@ -3,6 +3,7 @@ package com.example.mart.blindfriend
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.database.sqlite.SQLiteDatabase
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
@@ -191,22 +192,36 @@ class MainActivity : AppCompatActivity() {
 
                             val detector = FirebaseVision.getInstance().getVisionCloudLabelDetector (options)
 
+                            val lexitronAccess: lexitronAccess = lexitronAccess.getInstance(this@MainActivity)
+
                             val result = detector.detectInImage(firebaseImage)
                                     .addOnSuccessListener { labels ->
-                                        var speectText = ""
+                                        var speechText = ""
                                         if (labels != null) {
+                                            lexitronAccess.open()
                                             for (label in labels) {
 //                                                if(label.confidence>=0.75){
 //                                                    contentLabel.append(label.label+" :  ")
 //                                                    contentLabel.append(label.confidence.toString()+"\n")
                                                 println(label.label+" : "+label.confidence.toString())
-//                                                }
-                                                speectText += label.label + " and "
+//                                                speechText += "${label.label} และ "
+                                                try {
+                                                    val translate = lexitronAccess.getQuotes(label.label)
+                                                    println(translate+" : "+label.confidence.toString())
+                                                    speechText += "$translate "
+                                                } catch (e: Exception){
+                                                }
+//                                                val translate = lexitronAccess.getQuotes(label.label)
+//////                                                }
+//                                                println(translate+" : "+label.confidence.toString())
+
+//                                                speechText += "$translate และ "
                                             }
                                         }
-                                        speectText+="จบการทำงาน"
-                                        TextSpeech.getInstance(applicationContext).speak(speectText)
-                                        println(speectText)
+                                        lexitronAccess.close()
+                                        speechText += "ถ่ายรูปต่อไปได้เลยค่ะ "
+                                        TextSpeech.getInstance(applicationContext).speak(speechText)
+                                        println(speechText)
                                     }
                                     .addOnFailureListener {
                                         Toast.makeText(this@MainActivity,"Unsuccessful", Toast.LENGTH_SHORT).show()
